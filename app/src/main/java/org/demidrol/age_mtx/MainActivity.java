@@ -42,6 +42,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
@@ -427,8 +428,8 @@ public class MainActivity extends AppCompatActivity {
         result.append("Target BSSID: ").append(bssid).append("\n\n");
         
         try {
-            // Step 1: Configure and connect to Wi-Fi
-            result.append("1. Configuring Wi-Fi connection...\n");
+            // Step 1: Configure and connect to Wi-Fi using DHCP
+            result.append("1. Configuring Wi-Fi connection (DHCP)...\n");
             boolean wifiConnected = configureAndConnectToWifi(ssid, bssid);
             
             if (!wifiConnected) {
@@ -437,22 +438,25 @@ public class MainActivity extends AppCompatActivity {
             }
             result.append("   ✅ Connected to Wi-Fi\n");
             
-            // Wait for network to stabilize
-            Thread.sleep(3000);
+            // Wait for DHCP to assign IP address
+            result.append("\n2. Waiting for DHCP IP assignment...\n");
+            Thread.sleep(5000);
             
-            // Step 2: Configure static IP
-            result.append("\n2. Configuring static IP 192.168.4.2/24...\n");
-            boolean ipConfigured = configureStaticIp();
-            
-            if (!ipConfigured) {
-                result.append("   ⚠️ Static IP configuration may have failed\n");
-                result.append("   Continuing with DHCP...\n");
+            // Get current network info
+            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+            if (wifiInfo != null) {
+                int ipAddress = wifiInfo.getIpAddress();
+                String ip = String.format(Locale.ROOT, "%d.%d.%d.%d",
+                    (ipAddress & 0xff),
+                    (ipAddress >> 8 & 0xff),
+                    (ipAddress >> 16 & 0xff),
+                    (ipAddress >> 24 & 0xff));
+                result.append("   Assigned IP: ").append(ip).append("\n");
+                result.append("   Network ID: ").append(wifiInfo.getNetworkId()).append("\n");
+                result.append("   SSID: ").append(wifiInfo.getSSID()).append("\n");
             } else {
-                result.append("   ✅ Static IP configured\n");
+                result.append("   ⚠️ Could not retrieve network information\n");
             }
-            
-            // Wait for IP configuration
-            Thread.sleep(2000);
             
             // Step 3: Connect via TCP socket
             result.append("\n3. Connecting to 192.168.4.1:22...\n");
@@ -541,16 +545,29 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     
-    private boolean configureStaticIp() {
-        // Note: Configuring static IP programmatically requires root access on most Android versions
-        // This is a simplified approach that may not work on all devices
-        
+    private String getCurrentNetworkInfo() {
         try {
-            // For Android 10+, we need to use Network API
-            // This is a placeholder - actual implementation would require more complex code
-            return true;
+            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+            if (wifiInfo == null) {
+                return "Not connected to any network";
+            }
+            
+            int ipAddress = wifiInfo.getIpAddress();
+            String ip = String.format(Locale.ROOT, "%d.%d.%d.%d",
+                (ipAddress & 0xff),
+                (ipAddress >> 8 & 0xff),
+                (ipAddress >> 16 & 0xff),
+                (ipAddress >> 24 & 0xff));
+            
+            return String.format(Locale.ROOT, 
+                "Connected to: %s\nIP Address: %s\nBSSID: %s\nSignal: %d dBm",
+                wifiInfo.getSSID(),
+                ip,
+                wifiInfo.getBSSID(),
+                wifiInfo.getRssi()
+            );
         } catch (Exception e) {
-            return false;
+            return "Error getting network info: " + e.getMessage();
         }
     }
     
