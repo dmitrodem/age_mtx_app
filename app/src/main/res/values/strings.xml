@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">AGE MTX</string>
+    <string name="app_title">Wi-Fi Base Station Scanner</string>
+    <string name="hint_ssid_pattern">SSID Pattern (regex)</string>
+    <string name="default_pattern">age_dev_N.*</string>
+    <string name="button_start_scanning">Start Scanning</string>
+    <string name="button_stop_scanning">Stop Scanning</string>
+    <string name="status_ready">Status: Ready</string>
+    <string name="status_scanning">Scanning...</string>
+    <string name="status_scan_failed">Scan failed to start</string>
+    <string name="status_scan_failed_cached">Scan failed, using cached results</string>
+    <string name="status_scanning_stopped">Scanning stopped</string>
+    <string name="matching_networks">Matching Networks:</string>
+    <string name="found_networks">Found %d matching networks</string>
+    <string name="toast_enter_pattern">Please enter a search pattern</string>
+    <string name="toast_invalid_regex">Invalid regex pattern</string>
+    <string name="toast_scan_failed">Failed to start Wi-Fi scan</string>
+    <string name="toast_permissions_granted">Permissions granted</string>
+    <string name="toast_permissions_denied">Permissions denied. Some features may not work.</string>
+    <string name="button_back_to_scanner">Back to Scanner</string>
+    <string name="device_info_title">Device Information</string>
+    <string name="toast_connecting">Connecting to %s...</string>
+    <string name="toast_connection_failed">Failed to connect to device</string>
+</resources>
