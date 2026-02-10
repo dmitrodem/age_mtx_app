@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId "org.demidrol.age_mtx"
-        minSdk 29
+        minSdk 33
         targetSdk 36
         versionCode 1
         versionName "1.0"
@@ -29,9 +29,15 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
     implementation libs.appcompat
     implementation libs.material
+    implementation libs.constraintlayout
+    implementation libs.navigation.fragment
+    implementation libs.navigation.ui
 }
