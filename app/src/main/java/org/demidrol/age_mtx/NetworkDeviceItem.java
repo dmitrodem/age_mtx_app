@@ -1,6 +1,8 @@
 package org.demidrol.age_mtx;
 
-public class NetworkDeviceItem {
+import java.io.Serializable;
+
+public class NetworkDeviceItem implements Serializable {
 
     public String SSID;
     public String BSSID;
@@ -12,11 +14,9 @@ public class NetworkDeviceItem {
         this.level = level;
         this.frequency = frequency;
     }
-
     @Override
     public String toString() {
-        return String.format("%s{SSID=%s, BSSID=%s, level=%d dBm, frequency=%d MHz}",
-                this.getClass().toString(),
+        return String.format("SSID %s\nBSSID %s\nlevel %d dBm\nfrequency %d MHz",
                 SSID,
                 BSSID,
                 level,

@@ -1,21 +1,23 @@
 package org.demidrol.age_mtx;
 
-public class WifiDevInfo {
-    private int DigitalDevType;		// измеритель - тип контроллера: 200 – ARM Cortex-A5 (ATSAMA5D2)
-    private int	InfoDevSize;		// Актуальный размер структуры AGE_DEV_INFO (в байтах)
-    private int	SoftType;			// Тип ПО, выполняемого в измерителе
-    private int AnalogDevType;		// измеритель - тип аналоговой части
-    private int SoftRevNum_day;		// Релиз ПО - день
-    private int SoftRevNum_month;	// Релиз ПО - месяц
-    private int SoftRevNum_year;	// Релиз ПО - год (2000 + SoftRevNum_year)
-    private int NandFlashType;		// Тип используемой NAND Flash-памяти
-    private int FactoryNum;			// Заводской номер устройства
-    private boolean FpgaConfig;		    // Флаг проведения конфигурации FPGA
-    private boolean ConstSetting;		// Флаг записи в SPI Flash-памяти системных констант
-    private int BoardConnectState;	// Состояние подключения платы АЦП
-    private int WifiSerialNum;		// Wifi - сетевой номер устройства (1-254)
-    private int WifiChannel;		// WiFi - рабочий канал модуля
-    private String WifiPassword;	// WiFi - пароль
+import java.io.Serializable;
+
+public class WifiDevInfo implements Serializable {
+    public int DigitalDevType;		// измеритель - тип контроллера: 200 – ARM Cortex-A5 (ATSAMA5D2)
+    public int	InfoDevSize;		// Актуальный размер структуры AGE_DEV_INFO (в байтах)
+    public int	SoftType;			// Тип ПО, выполняемого в измерителе
+    public int AnalogDevType;		// измеритель - тип аналоговой части
+    public int SoftRevNum_day;		// Релиз ПО - день
+    public int SoftRevNum_month;	// Релиз ПО - месяц
+    public int SoftRevNum_year;	// Релиз ПО - год (2000 + SoftRevNum_year)
+    public int NandFlashType;		// Тип используемой NAND Flash-памяти
+    public int FactoryNum;			// Заводской номер устройства
+    public boolean FpgaConfig;		    // Флаг проведения конфигурации FPGA
+    public boolean ConstSetting;		// Флаг записи в SPI Flash-памяти системных констант
+    public int BoardConnectState;	// Состояние подключения платы АЦП
+    public int WifiSerialNum;		// Wifi - сетевой номер устройства (1-254)
+    public int WifiChannel;		// WiFi - рабочий канал модуля
+    public String WifiPassword;	// WiFi - пароль
 
     static byte[] create_request() {
         byte[] request = new byte[1456];

@@ -279,10 +279,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void onNetworkSelected(NetworkDeviceItem dev) {
-        final String ssid = dev.SSID;
-        final String bssid = dev.BSSID;
-        Toast.makeText(this, getString(R.string.toast_connecting, ssid), Toast.LENGTH_SHORT).show();
-        new Thread(() -> queryDeviceInfo(ssid, bssid)).start();
+        Toast.makeText(this, getString(R.string.toast_connecting, dev.SSID), Toast.LENGTH_SHORT).show();
+        new Thread(() -> queryDeviceInfo(dev.SSID, dev.BSSID)).start();
     }
     
     private void queryDeviceInfo(String ssid, String bssid) {
@@ -316,18 +314,14 @@ public class MainActivity extends AppCompatActivity {
 
                         byte[] reply = new byte[1456];
                         int r = input.read(reply);
-
                         Log.i(TAG, "Received " + r + " bytes");
-                        HexFormat hf = java.util.HexFormat.ofDelimiter(" ");
-                        String hexdump = String.format("Msg = %s", hf.formatHex(reply, 0, r));
-                        Log.i(TAG, hexdump);
                         socket.close();
                         WifiDevInfo devInfo = new WifiDevInfo(reply);
                         Log.i(TAG, "WifiDevInfo = " + devInfo);
                         connectivityManager.unregisterNetworkCallback(this);
                         runOnUiThread(() -> {
                             Intent intent = new Intent(MainActivity.this, DeviceInfoActivity.class);
-                            intent.putExtra("EXTRA_DEVICE_INFO", devInfo.toString());
+                            intent.putExtra("EXTRA_DEVICE_INFO", devInfo);
                             intent.putExtra("EXTRA_SSID", ssid);
                             intent.putExtra("EXTRA_BSSID", bssid);
                             startActivity(intent);
@@ -335,14 +329,6 @@ public class MainActivity extends AppCompatActivity {
                     } catch (Exception e) {
                         Log.e(TAG, "Something bad");
                         e.printStackTrace();
-                    }
-                }
-
-                @Override
-                public void onLinkPropertiesChanged(@NonNull Network network, @NonNull LinkProperties linkProperties) {
-                    super.onLinkPropertiesChanged(network, linkProperties);
-                    for (LinkAddress addr: linkProperties.getLinkAddresses()) {
-                        Log.i(TAG, "Link address = " + addr);
                     }
                 }
             };
