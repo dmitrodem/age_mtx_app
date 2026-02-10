@@ -1,21 +1,19 @@
 package org.demidrol.age_mtx;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
-import android.net.LinkAddress;
-import android.net.LinkProperties;
 import android.net.MacAddress;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
 import android.net.wifi.ScanResult;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Bundle;
@@ -30,30 +28,16 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresPermission;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HexFormat;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Pattern;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
     private String TAG = "MyApp";
     // UI components
     private EditText etPattern;
@@ -87,8 +71,7 @@ public class MainActivity extends AppCompatActivity {
     // Receiver for WiFi scan results
     private BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
         @Override
-        @RequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-        public void onReceive(Context context, @NonNull Intent intent) {
+        public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)) {
                 networkList.clear();
                 if (pattern != null) {
@@ -153,8 +136,12 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void startScanning() {
-        if (!checkPermissions()) {
-            requestPermissions();
+        String[] remaining_permissions =
+            Arrays.stream(REQUIRED_PERMISSIONS)
+                    .filter((permission) -> (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED))
+                    .toArray(String[]::new);
+        if (remaining_permissions.length > 0) {
+            requestPermissions(remaining_permissions, PERMISSION_REQUEST_CODE);
             return;
         }
         
@@ -218,18 +205,11 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private boolean checkPermissions() {
-        for (String permission : REQUIRED_PERMISSIONS) {
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-        }
-        return true;
+        return Arrays.stream(REQUIRED_PERMISSIONS)
+                .map((permission) -> (checkSelfPermission(permission)))
+                .allMatch((x) -> (x == PackageManager.PERMISSION_GRANTED));
     }
-    
-    private void requestPermissions() {
-        ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, PERMISSION_REQUEST_CODE);
-    }
-    
+
     @Override
     public void onRequestPermissionsResult(
         int requestCode,
@@ -239,15 +219,13 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == PERMISSION_REQUEST_CODE) {
-            boolean allGranted = true;
-            for (int result : grantResults) {
-                allGranted = allGranted && (result == PackageManager.PERMISSION_GRANTED);
-            }
+            boolean allGranted = Arrays.stream(grantResults)
+                    .allMatch((permission) -> (permission == PackageManager.PERMISSION_GRANTED));
+
             Toast.makeText(this,
-                    allGranted ? R.string.toast_permissions_granted : R.string.toast_permissions_denied,
+                    checkPermissions() ? R.string.toast_permissions_granted : R.string.toast_permissions_denied,
                     Toast.LENGTH_SHORT)
                     .show();
-
         }
     }
     
@@ -299,7 +277,7 @@ public class MainActivity extends AppCompatActivity {
             ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
             ConnectivityManager.NetworkCallback cb = new ConnectivityManager.NetworkCallback() {
                 @Override
-                public void onAvailable(@NonNull Network network) {
+                public void onAvailable(Network network) {
                     Log.i(TAG, "Found requested wifi network");
                     try {
                         Socket socket = network.getSocketFactory().createSocket();

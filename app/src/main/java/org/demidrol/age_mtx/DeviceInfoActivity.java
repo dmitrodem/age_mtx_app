@@ -1,16 +1,13 @@
 package org.demidrol.age_mtx;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.TableRow;
-import android.widget.TextView;
-import android.widget.Button;
 import android.view.View;
-import org.demidrol.age_mtx.WifiDevInfo;
+import android.widget.Button;
+import android.widget.TextView;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-public class DeviceInfoActivity extends AppCompatActivity {
+public class DeviceInfoActivity extends Activity {
 
     private TextView tvDeviceInfo;
     private TextView tvTitle;
