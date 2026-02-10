@@ -19,9 +19,8 @@
         tools:ignore="ProtectedPermissions" />
 
     <application
-        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/Theme.AGEMTX" >
+        android:theme="@style/Theme.AppCompat.NoActionBar" >
         <activity
             android:name=".MainActivity"
             android:exported="true" >

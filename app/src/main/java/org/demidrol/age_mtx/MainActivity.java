@@ -47,6 +47,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
@@ -242,11 +243,11 @@ public class MainActivity extends AppCompatActivity {
             for (int result : grantResults) {
                 allGranted = allGranted && (result == PackageManager.PERMISSION_GRANTED);
             }
-            if (allGranted) {
-                Toast.makeText(this, R.string.toast_permissions_granted, Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, R.string.toast_permissions_denied, Toast.LENGTH_LONG).show();
-            }
+            Toast.makeText(this,
+                    allGranted ? R.string.toast_permissions_granted : R.string.toast_permissions_denied,
+                    Toast.LENGTH_SHORT)
+                    .show();
+
         }
     }
     
