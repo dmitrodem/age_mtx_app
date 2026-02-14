@@ -28,10 +28,15 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.demidrol.age_mtx.constants.CommandId;
+import org.demidrol.age_mtx.structures.WifiDevInfo;
+import org.demidrol.age_mtx.structures.WifiHeader;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -295,12 +300,18 @@ public class MainActivity extends Activity {
                         int r = input.read(reply);
                         Log.i(TAG, "Received " + r + " bytes");
                         socket.close();
-                        WifiDevInfo devInfo = new WifiDevInfo(reply);
-                        Log.i(TAG, "WifiDevInfo = " + devInfo);
+                        ByteBuffer buf = ByteBuffer.wrap(reply);
+                        WifiHeader wifiHeader = new WifiHeader();
+                        WifiDevInfo wifiDevInfo = new WifiDevInfo();
+                        wifiHeader.read(buf);
+                        wifiDevInfo.read(buf);
+                        Log.i(TAG, "WifiHeader = " + wifiHeader);
+                        Log.i(TAG, "WifiDevInfo = " + wifiDevInfo);
+
                         connectivityManager.unregisterNetworkCallback(this);
                         runOnUiThread(() -> {
                             Intent intent = new Intent(MainActivity.this, DeviceInfoActivity.class);
-                            intent.putExtra("EXTRA_DEVICE_INFO", devInfo);
+                            intent.putExtra("EXTRA_DEVICE_INFO", wifiDevInfo);
                             intent.putExtra("EXTRA_SSID", ssid);
                             intent.putExtra("EXTRA_BSSID", bssid);
                             startActivity(intent);

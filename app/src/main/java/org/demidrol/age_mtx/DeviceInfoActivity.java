@@ -7,6 +7,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import org.demidrol.age_mtx.structures.WifiDevInfo;
+
 public class DeviceInfoActivity extends Activity {
 
     private TextView tvDeviceInfo;
@@ -28,22 +30,19 @@ public class DeviceInfoActivity extends Activity {
         String ssid = intent.getStringExtra("EXTRA_SSID");
         String bssid = intent.getStringExtra("EXTRA_BSSID");
 
-        ((TextView)findViewById(R.id.tvDigitalDevType)).setText(String.format("%d", info.DigitalDevType));
-        ((TextView)findViewById(R.id.tvInfoDevSize)).setText(String.format("%d", info.InfoDevSize));
-        ((TextView)findViewById(R.id.tvSoftType)).setText(String.format("%d", info.SoftType));
-        ((TextView)findViewById(R.id.tvAnalogDevType)).setText(String.format("%d", info.AnalogDevType));
-        ((TextView)findViewById(R.id.tvSoftRevNum)).setText(String.format("%04d.%02d.%02d",
-                2000 + info.SoftRevNum_year,
-                info.SoftRevNum_month,
-                info.SoftRevNum_day));
-        ((TextView)findViewById(R.id.tvNandFlashType)).setText(String.format("%d", info.NandFlashType));
-        ((TextView)findViewById(R.id.tvFactoryNum)).setText(String.format("%d", info.FactoryNum));
-        ((TextView)findViewById(R.id.tvFpgaConfig)).setText(info.FpgaConfig ? "OK" : "Error");
-        ((TextView)findViewById(R.id.tvConstSetting)).setText(info.ConstSetting ? "OK" : "Error");
-        ((TextView)findViewById(R.id.tvBoardConnectState)).setText(String.format("%d", info.BoardConnectState));
-        ((TextView)findViewById(R.id.tvWifiSerialNum)).setText(String.format("%d", info.WifiSerialNum));
-        ((TextView)findViewById(R.id.tvWifiChannel)).setText(String.format("%d", info.WifiChannel));
-        ((TextView)findViewById(R.id.tvWifiPassword)).setText(info.WifiPassword);
+        ((TextView)findViewById(R.id.tvDigitalDevType)).setText(String.format("%d", info.getDigitalDevType()));
+        ((TextView)findViewById(R.id.tvInfoDevSize)).setText(String.format("%d", info.getInfoDevSize()));
+        ((TextView)findViewById(R.id.tvSoftType)).setText(String.format("%d", info.getSoftType()));
+        ((TextView)findViewById(R.id.tvAnalogDevType)).setText(String.format("%d", info.getAnalogDevType()));
+        ((TextView)findViewById(R.id.tvSoftRevNum)).setText(info.getSoftwareReleaseDate());
+        ((TextView)findViewById(R.id.tvNandFlashType)).setText(String.format("%d", info.getNandFlashType()));
+        ((TextView)findViewById(R.id.tvFactoryNum)).setText(String.format("%d", info.getFactoryNum()));
+        ((TextView)findViewById(R.id.tvFpgaConfig)).setText(info.getFpgaConfig() ? "OK" : "Error");
+        ((TextView)findViewById(R.id.tvConstSetting)).setText(info.getConstSetting() ? "OK" : "Error");
+        ((TextView)findViewById(R.id.tvBoardConnectState)).setText(String.format("%d", info.getBoardConnectState()));
+        ((TextView)findViewById(R.id.tvWifiSerialNum)).setText(String.format("%d", info.getWifiSerialNum()));
+        ((TextView)findViewById(R.id.tvWifiChannel)).setText(String.format("%d", info.getWifiChannel()));
+        ((TextView)findViewById(R.id.tvWifiPassword)).setText(info.getWifiPassword());
         // Update UI
         if (ssid != null) {
             tvTitle.setText(getString(R.string.device_info_title) + ": " + ssid);
