@@ -21,7 +21,7 @@ public class WifiDevInfo implements Serializable {
     public byte wifiChannel;        // WiFi working channel
     public byte[] wifiPassword = new byte[22];  // WiFi password
 
-    static byte[] create_request() {
+    public static byte[] create_request() {
         byte[] request = new byte[1456];
         request[0] = 0x02;
         request[1] = 0x06;

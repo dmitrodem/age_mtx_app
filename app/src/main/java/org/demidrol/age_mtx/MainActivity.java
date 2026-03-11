@@ -19,6 +19,7 @@ import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PatternMatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -34,9 +35,11 @@ import org.demidrol.age_mtx.structures.WifiHeader;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -138,6 +141,50 @@ public class MainActivity extends Activity {
             NetworkDeviceItem dev = networkList.get(position);
             onNetworkSelected(dev);
         });
+
+        Log.d(TAG, "Scanning networks");
+        NetworkSpecifier specifier = new WifiNetworkSpecifier.Builder()
+                .setSsidPattern(new PatternMatcher("age_dev_N",  PatternMatcher.PATTERN_PREFIX))
+                .setWpa2Passphrase("password_age")
+                .build();
+        NetworkRequest request = new NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .setNetworkSpecifier(specifier)
+                .build();
+        ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        Log.d(TAG, "adding callback");
+        ConnectivityManager.NetworkCallback cb = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                super.onAvailable(network);
+                Log.d(TAG, "Network available: " + network);
+                try {
+                    Socket sock = network.getSocketFactory().createSocket();
+                    sock.connect(new InetSocketAddress("192.168.4.1", 22), 1000);
+                    byte[] request = WifiDevInfo.create_request();
+                    sock.getOutputStream().write(request);
+                    byte[] reply = new byte[1456];
+                    int r = sock.getInputStream().read(reply);
+                    sock.close();
+                    ByteBuffer buf = ByteBuffer.wrap(reply);
+                    buf.order(ByteOrder.LITTLE_ENDIAN);
+                    WifiHeader wifiHeader = new WifiHeader();
+                    WifiDevInfo wifiDevInfo = new WifiDevInfo();
+                    wifiHeader.read(buf);
+                    wifiDevInfo.read(buf);
+                    Log.i(TAG, wifiHeader.toString());
+                    Log.i(TAG, wifiDevInfo.toString());
+                    connectivityManager.unregisterNetworkCallback(this);
+                } catch (IOException e) {
+                    Log.e(TAG, "IOException: " + e);
+                    throw new RuntimeException(e);
+                }
+                Log.d(TAG, "Connection OK");
+                connectivityManager.unregisterNetworkCallback(this);
+            }
+        };
+        connectivityManager.requestNetwork(request, cb);
     }
     
     private void startScanning() {
