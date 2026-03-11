@@ -2,48 +2,30 @@ package org.demidrol.age_mtx;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
-import android.net.MacAddress;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
-import android.net.wifi.ScanResult;
-import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.PatternMatcher;
 import android.util.Log;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import org.demidrol.age_mtx.constants.CommandId;
 import org.demidrol.age_mtx.structures.WifiDevInfo;
 import org.demidrol.age_mtx.structures.WifiHeader;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Pattern;
 
 public class MainActivity extends Activity {
     private String TAG = "MyApp";
@@ -54,78 +36,23 @@ public class MainActivity extends Activity {
     private ConnectivityManager.NetworkCallback networkCallback;
 
     // UI components
-    private EditText etPattern;
     private Button btnScan;
-    private TextView tvStatus;
-    private ListView lvNetworks;
-    
-    // WiFi and scanning
-    private WifiManager wifiManager;
-    private boolean isScanning = false;
-    private Handler handler;
-    private Pattern pattern;
-    
-    // Double back press to exit
-    private static final int BACK_PRESS_INTERVAL = 2000; // 2 seconds
-    private long backPressedTime = 0;
-    
-    // Adapter for displaying networks
-    private ArrayAdapter<NetworkDeviceItem> adapter;
-    private List<NetworkDeviceItem> networkList;
 
     // Permissions
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final String[] REQUIRED_PERMISSIONS = new String[] {
-            Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_WIFI_STATE,
             Manifest.permission.CHANGE_WIFI_STATE,
             Manifest.permission.NEARBY_WIFI_DEVICES
-};
-    
-    // Receiver for WiFi scan results
-    private BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)) {
-                networkList.clear();
-                if (pattern != null) {
-                    for (ScanResult result : wifiManager.getScanResults()) {
-                        if (pattern.matcher(result.SSID).find()) {
-                            networkList.add(new NetworkDeviceItem(
-                                    result.SSID,
-                                    result.BSSID,
-                                    result.level,
-                                    result.frequency));
-                        }
-                    }
-                }
-
-                adapter.notifyDataSetChanged();
-                tvStatus.setText(getString(R.string.found_networks, networkList.size()));
-                Log.i(TAG, "New scan results available: " + networkList.size());
-            }
-        }
     };
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        
+
         // Initialize UI components
-        etPattern = findViewById(R.id.etPattern);
         btnScan = findViewById(R.id.btnScan);
-        tvStatus = findViewById(R.id.tvStatus);
-        lvNetworks = findViewById(R.id.lvNetworks);
-        
-        // Initialize WiFi manager
-        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        handler = new Handler(Looper.getMainLooper());
-        
-        // Setup network list adapter
-        networkList = new ArrayList<>();
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, networkList);
-        lvNetworks.setAdapter(adapter);
 
         networkSpecifier = new WifiNetworkSpecifier.Builder()
                 .setSsidPattern(new PatternMatcher("age_dev_N",  PatternMatcher.PATTERN_PREFIX))
@@ -178,80 +105,20 @@ public class MainActivity extends Activity {
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                String[] remaining_permissions =
+                        Arrays.stream(REQUIRED_PERMISSIONS)
+                                .filter((permission) -> (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED))
+                                .toArray(String[]::new);
+                if (remaining_permissions.length > 0) {
+                    requestPermissions(remaining_permissions, PERMISSION_REQUEST_CODE);
+                    return;
+                }
                 connectivityManager.requestNetwork(networkRequest, networkCallback);
                 btnScan.setEnabled(false);
             }
         });
     }
-    
-    private void startScanning() {
-        String[] remaining_permissions =
-            Arrays.stream(REQUIRED_PERMISSIONS)
-                    .filter((permission) -> (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED))
-                    .toArray(String[]::new);
-        if (remaining_permissions.length > 0) {
-            requestPermissions(remaining_permissions, PERMISSION_REQUEST_CODE);
-            return;
-        }
-        
-        String patternText = etPattern.getText().toString().trim();
-        if (patternText.isEmpty()) {
-            Toast.makeText(this, R.string.toast_enter_pattern, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        try {
-            pattern = Pattern.compile(patternText, Pattern.CASE_INSENSITIVE);
-        } catch (Exception e) {
-            Toast.makeText(this, R.string.toast_invalid_regex, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        isScanning = true;
-        btnScan.setText(R.string.button_stop_scanning);
-        tvStatus.setText(R.string.status_scanning);
-        
-        // Clear previous results
-        networkList.clear();
-        adapter.notifyDataSetChanged();
-        
-        // Register receiver
-        IntentFilter intentFilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-        registerReceiver(wifiScanReceiver, intentFilter);
-        
-        startWifiScan();
-    }
-    
-    private void stopScanning() {
-        isScanning = false;
-        btnScan.setText(R.string.button_start_scanning);
-        tvStatus.setText(R.string.status_scanning_stopped);
-        
-        // Remove any pending scan callbacks
-        handler.removeCallbacksAndMessages(null);
-        
-        try {
-            unregisterReceiver(wifiScanReceiver);
-        } catch (Exception e) {
-            // Receiver was not registered
-        }
-    }
-    
-    private void startWifiScan() {
-        if (!isScanning) {
-            // Don't start scan if we're not in scanning mode
-            return;
-        }
-        
-        if (checkPermissions()) {
-            if (wifiManager.startScan()) {
-                tvStatus.setText(R.string.status_scanning);
-            } else {
-                tvStatus.setText(R.string.status_scan_failed);
-                Toast.makeText(this, R.string.toast_scan_failed, Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
+
     
     private boolean checkPermissions() {
         return Arrays.stream(REQUIRED_PERMISSIONS)
@@ -275,100 +142,6 @@ public class MainActivity extends Activity {
                     checkPermissions() ? R.string.toast_permissions_granted : R.string.toast_permissions_denied,
                     Toast.LENGTH_SHORT)
                     .show();
-        }
-    }
-    
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (isScanning) {
-            unregisterReceiver(wifiScanReceiver);
-        }
-    }
-    
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        stopScanning();
-        handler.removeCallbacksAndMessages(null);
-    }
-    
-    @Override
-    public void onBackPressed() {
-        if (backPressedTime + BACK_PRESS_INTERVAL > System.currentTimeMillis()) {
-            // Double back press detected - exit gracefully
-            super.onBackPressed();
-            finish();
-        } else {
-            // First back press - show toast message
-            Toast.makeText(this, "Press back again to exit", Toast.LENGTH_SHORT).show();
-            backPressedTime = System.currentTimeMillis();
-        }
-    }
-    
-    private void onNetworkSelected(NetworkDeviceItem dev) {
-        Toast.makeText(this, getString(R.string.toast_connecting, dev.SSID), Toast.LENGTH_SHORT).show();
-        new Thread(() -> queryDeviceInfo(dev.SSID, dev.BSSID)).start();
-    }
-    
-    private void queryDeviceInfo(String ssid, String bssid) {
-        try {
-            NetworkSpecifier specifier = new WifiNetworkSpecifier.Builder()
-                    .setSsid(ssid)
-                    .setBssid(MacAddress.fromString(bssid))
-                    .setWpa2Passphrase("password_age")
-                    .build();
-            NetworkRequest request = new NetworkRequest.Builder()
-                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                    .setNetworkSpecifier(specifier)
-                    .build();
-            ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-            ConnectivityManager.NetworkCallback cb = new ConnectivityManager.NetworkCallback() {
-                @Override
-                public void onAvailable(Network network) {
-                    Log.i(TAG, "Found requested wifi network");
-                    try {
-                        Socket socket = network.getSocketFactory().createSocket();
-                        socket.setSoTimeout(5000);
-                        socket.connect(new InetSocketAddress("192.168.4.1", 22));
-                        Log.i(TAG, "Successfully connected to a socket");
-                        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                        DataInputStream input = new DataInputStream(socket.getInputStream());
-                        byte[] msg = WifiDevInfo.create_request();
-                        out.write(msg);
-                        out.flush();
-                        Log.i(TAG, "Sent request");
-
-                        byte[] reply = new byte[1456];
-                        int r = input.read(reply);
-                        Log.i(TAG, "Received " + r + " bytes");
-                        socket.close();
-                        ByteBuffer buf = ByteBuffer.wrap(reply);
-                        WifiHeader wifiHeader = new WifiHeader();
-                        WifiDevInfo wifiDevInfo = new WifiDevInfo();
-                        wifiHeader.read(buf);
-                        wifiDevInfo.read(buf);
-                        Log.i(TAG, "WifiHeader = " + wifiHeader);
-                        Log.i(TAG, "WifiDevInfo = " + wifiDevInfo);
-
-                        connectivityManager.unregisterNetworkCallback(this);
-                        runOnUiThread(() -> {
-                            Intent intent = new Intent(MainActivity.this, DeviceInfoActivity.class);
-                            intent.putExtra("EXTRA_DEVICE_INFO", wifiDevInfo);
-                            intent.putExtra("EXTRA_SSID", ssid);
-                            intent.putExtra("EXTRA_BSSID", bssid);
-                            startActivity(intent);
-                        });
-                    } catch (Exception e) {
-                        Log.e(TAG, "Something bad");
-                        e.printStackTrace();
-                    }
-                }
-            };
-            connectivityManager.requestNetwork(request, cb);
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 }
