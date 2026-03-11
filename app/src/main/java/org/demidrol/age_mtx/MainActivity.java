@@ -47,6 +47,12 @@ import java.util.regex.Pattern;
 
 public class MainActivity extends Activity {
     private String TAG = "MyApp";
+
+    private NetworkSpecifier networkSpecifier;
+    private NetworkRequest networkRequest;
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback networkCallback;
+
     // UI components
     private EditText etPattern;
     private Button btnScan;
@@ -121,40 +127,18 @@ public class MainActivity extends Activity {
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, networkList);
         lvNetworks.setAdapter(adapter);
 
-        // Setup click listener for scan button
-        btnScan.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (isScanning) {
-                    stopScanning();
-                } else {
-                    startScanning();
-                }
-            }
-        });
-        
-        // Setup click listener for network items
-        lvNetworks.setOnItemClickListener((parent, view, position, id) -> {
-            if (isScanning) {
-                stopScanning();
-            }
-            NetworkDeviceItem dev = networkList.get(position);
-            onNetworkSelected(dev);
-        });
-
-        Log.d(TAG, "Scanning networks");
-        NetworkSpecifier specifier = new WifiNetworkSpecifier.Builder()
+        networkSpecifier = new WifiNetworkSpecifier.Builder()
                 .setSsidPattern(new PatternMatcher("age_dev_N",  PatternMatcher.PATTERN_PREFIX))
                 .setWpa2Passphrase("password_age")
                 .build();
-        NetworkRequest request = new NetworkRequest.Builder()
+        networkRequest = new NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                 .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .setNetworkSpecifier(specifier)
+                .setNetworkSpecifier(networkSpecifier)
                 .build();
-        ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        Log.d(TAG, "adding callback");
-        ConnectivityManager.NetworkCallback cb = new ConnectivityManager.NetworkCallback() {
+        connectivityManager = (ConnectivityManager) getApplicationContext()
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
                 super.onAvailable(network);
@@ -182,9 +166,22 @@ public class MainActivity extends Activity {
                 }
                 Log.d(TAG, "Connection OK");
                 connectivityManager.unregisterNetworkCallback(this);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        btnScan.setEnabled(true);
+                    }
+                });
             }
         };
-        connectivityManager.requestNetwork(request, cb);
+        // Setup click listener for scan button
+        btnScan.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                connectivityManager.requestNetwork(networkRequest, networkCallback);
+                btnScan.setEnabled(false);
+            }
+        });
     }
     
     private void startScanning() {
