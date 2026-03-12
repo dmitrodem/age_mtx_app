@@ -23,4 +23,8 @@
     <string name="unknown">unknown</string>
     <string name="hint_psk">WiFi password</string>
     <string name="default_psk">password_age</string>
+    <string name="ssid_prefix">SSID prefix</string>
+    <string name="psk">WiFi password</string>
+    <string name="wifi_dev_info">WiFi Dev Info</string>
+    <string name="nand_file_header">NAND File header</string>
 </resources>

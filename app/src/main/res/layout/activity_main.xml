@@ -3,9 +3,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:layout_marginTop="32dp"
-    android:padding="16dp">
-
+    android:padding="2dp">
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:text="@string/ssid_prefix"
+        android:singleLine="true"/>
     <EditText
         android:id="@+id/etSSID"
         android:layout_width="match_parent"
@@ -14,7 +18,12 @@
         android:text="@string/default_ssid"
         android:inputType="text"
         android:autofillHints="none" />
-
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:text="@string/psk"
+        android:singleLine="true"/>
     <EditText
         android:id="@+id/etPSK"
         android:layout_width="match_parent"
@@ -24,13 +33,26 @@
         android:inputType="text"
         android:autofillHints="none" />
 
-    <Button
-        android:id="@+id/btnConnect"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/button_connect"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="16dp"/>
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/button_connect"/>
+        <Button
+            android:id="@+id/btnWifiDevInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/wifi_dev_info"/>
+        <Button
+            android:id="@+id/btnFileHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/nand_file_header"/>
+    </LinearLayout>
 
     <ScrollView
         android:id="@+id/scrollView"

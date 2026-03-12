@@ -45,8 +45,10 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements View.OnClickListener {
     private String TAG = "MyApp";
 
     private final int MTU = 1456;
@@ -57,8 +59,14 @@ public class MainActivity extends Activity {
     private EditText etSSID;
     private EditText etPSK;
     private Button btnScan;
+    private Button btnWifiDevInfo;
+    private Button btnFileHeader;
     private TextView logTextView;
     private ScrollView scrollView;
+
+    private boolean isConnected;
+    private Socket socket;
+    private ExecutorService executorService;
 
     // Permissions
     private static final int PERMISSION_REQUEST_CODE = 100;
@@ -80,8 +88,19 @@ public class MainActivity extends Activity {
         etSSID = findViewById(R.id.etSSID);
         etPSK = findViewById(R.id.etPSK);
         btnScan = findViewById(R.id.btnConnect);
+        btnWifiDevInfo = findViewById(R.id.btnWifiDevInfo);
+        btnFileHeader = findViewById(R.id.btnFileHeader);
         logTextView = findViewById(R.id.logTextView);
         scrollView = findViewById(R.id.scrollView);
+
+        btnScan.setOnClickListener(this);
+        btnWifiDevInfo.setOnClickListener(this);
+        btnFileHeader.setOnClickListener(this);
+
+        executorService = Executors.newSingleThreadExecutor();
+
+        isConnected = false;
+        updateUI();
 
         connectivityManager = (ConnectivityManager) getApplicationContext()
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -94,44 +113,43 @@ public class MainActivity extends Activity {
                         InetAddress server = route.getGateway();
                         logMessage("Connecting to server: " + server.getHostAddress());
                         try {
-                            Socket sock = network.getSocketFactory().createSocket();
-                            sock.connect(new InetSocketAddress(server, 22), 1000);
-                            //getWifiDevInfo(sock);
-                            getWifiNandInfo(sock);
-                            sock.close();
+                            socket = network.getSocketFactory().createSocket();
+                            socket.setKeepAlive(true);
+                            socket.connect(new InetSocketAddress(server, 22), 1000);
+                            if (socket.isConnected()) {
+                                isConnected = true;
+                                updateUI();
+                            }
                         } catch (IOException e) {
                             Log.e(TAG, "IOException: " + e);
-                            throw new RuntimeException(e);
-                        }
-                        finally {
                             connectivityManager.unregisterNetworkCallback(this);
-                            runOnUiThread(() -> {btnScan.setEnabled(true);});
+                            //throw new RuntimeException(e);
                         }
                     }
                 }
             }
-
             @Override
             public void onUnavailable() {
-                runOnUiThread(() -> {
-                    logMessage("Network unavailable");
-                    btnScan.setEnabled(true);
-                });
                 super.onUnavailable();
+                logMessage("Network unavailable");
+                isConnected = false;
+                updateUI();
             }
             @Override
             public void onLost(Network network) {
-                runOnUiThread(() -> {
-                    logMessage("Network lost");
-                    btnScan.setEnabled(true);
-                });
                 super.onLost(network);
+                logMessage("Network lost");
+                isConnected = false;
+                updateUI();
             }
         };
-        // Setup click listener for scan button
-        btnScan.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+    }
+
+    @Override
+    public void onClick(View view) {
+
+        if (view == btnScan) {
+            if (!isConnected) {
                 String[] remaining_permissions =
                         Arrays.stream(REQUIRED_PERMISSIONS)
                                 .filter((permission) -> (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED))
@@ -158,11 +176,59 @@ public class MainActivity extends Activity {
                         .setNetworkSpecifier(networkSpecifier)
                         .build();
                 connectivityManager.requestNetwork(networkRequest, networkCallback, 5000);
-                btnScan.setEnabled(false);
+                // updateUI is run by callback
+            } else {
+                try {
+                    if (socket.isConnected()) {
+                        socket.close();
+                    }
+                } catch (IOException e) {
+                    logMessage("Failed to close socket");
+                }
+                connectivityManager.unregisterNetworkCallback(networkCallback);
+                isConnected = false;
+                updateUI();
             }
-        });
+        } else if (view == btnWifiDevInfo) {
+            executorService.execute(()-> {
+                try {
+                    if (socket.isConnected()) {
+                        displayWifiDevInfo(socket);
+                    } else {
+                        logMessage("Socket is not connected");
+                    }
+                } catch (IOException e) {
+                    logMessage("IOException: " + e);
+                    connectivityManager.unregisterNetworkCallback(networkCallback);
+                    isConnected = false;
+                    updateUI();
+                }
+            });
+        } else if (view == btnFileHeader) {
+            executorService.execute(()-> {
+                try {
+                    if (socket.isConnected()) {
+                        displayWifiNandInfo(socket);
+                    } else {
+                        logMessage("Socket is not connected");
+                    }
+                } catch (IOException e) {
+                    logMessage("IOException: " + e);
+                    connectivityManager.unregisterNetworkCallback(networkCallback);
+                    isConnected = false;
+                    updateUI();
+                }
+            });
+        }
     }
 
+    private void updateUI() {
+        runOnUiThread(() -> {
+            btnScan.setText(isConnected? "Disconnect" : "Connect");
+            btnWifiDevInfo.setEnabled(isConnected);
+            btnFileHeader.setEnabled(isConnected);
+        });
+    }
     private boolean checkPermissions() {
         return Arrays.stream(REQUIRED_PERMISSIONS)
                 .map((permission) -> (checkSelfPermission(permission)))
@@ -213,7 +279,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void getWifiDevInfo(Socket s) throws IOException {
+    private void displayWifiDevInfo(Socket s) throws IOException {
         WifiPacket req = new WifiPacket()
                 .setCmd(CmdId_Mpu_WiFi)
                 .setSubCmd(wSC_Sys_GET_INFO)
@@ -234,7 +300,9 @@ public class MainActivity extends Activity {
         displayInfo(wifiDevInfo);
     }
 
-    private void getWifiNandInfo(Socket s) throws IOException {
+    private void displayWifiNandInfo(Socket s) throws IOException {
+        boolean keepAlive = socket.getKeepAlive();
+        socket.setKeepAlive(false);
         long headerAddress = -1;
         {
             WifiPacket req = new WifiPacket()
@@ -286,17 +354,22 @@ public class MainActivity extends Activity {
             nandHeaderBuffer.put(reply.getData());
             logMessage(String.format("Read data at 0x%08x", headerAddress + offset));
         }
-//        StringBuilder sb = new StringBuilder();
-//        for (int i = 0; i < nandHeader.length; i += 64) {
-//            for (int j = 0; j < 64; j += 1) {
-//                sb.append(String.format("%02x", nandHeader[i+j]));
-//            }
-//            sb.append("\n");
-//        }
-//        logMessage(sb.toString());
+        socket.setKeepAlive(keepAlive);
         nandHeaderBuffer.flip();
         AGE_MainDataFileHeader hdr = new AGE_MainDataFileHeader()
                 .read(nandHeaderBuffer);
-        logMessage(hdr.toString());
+        displayInfo(hdr.toString());
+    }
+
+    @Override
+    protected void onDestroy() {
+        try {
+            if (socket.isConnected()) {
+                socket.close();
+            }
+        } catch (IOException e) {
+        }
+        connectivityManager.unregisterNetworkCallback(networkCallback);
+        super.onDestroy();
     }
 }
