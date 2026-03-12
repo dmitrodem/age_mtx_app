@@ -1,9 +1,9 @@
 <resources>
     <string name="app_name">AGE MTX</string>
     <string name="app_title">AGE MTX Scanner</string>
-    <string name="hint_ssid_pattern">SSID Pattern (regex)</string>
-    <string name="default_pattern">age_dev_N.*</string>
-    <string name="button_start_scanning">Start Scanning</string>
+    <string name="hint_ssid_pattern">SSID Pattern (prefix)</string>
+    <string name="default_ssid">age_dev_N</string>
+    <string name="button_connect">Connect</string>
     <string name="button_stop_scanning">Stop Scanning</string>
     <string name="status_ready">Status: Ready</string>
     <string name="status_scanning">Scanning...</string>
@@ -21,4 +21,6 @@
     <string name="toast_connecting">Connecting to %s...</string>
     <!-- Strings used for fragments for navigation -->
     <string name="unknown">unknown</string>
+    <string name="hint_psk">WiFi password</string>
+    <string name="default_psk">password_age</string>
 </resources>

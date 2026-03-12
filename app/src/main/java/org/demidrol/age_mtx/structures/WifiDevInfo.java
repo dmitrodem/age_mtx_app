@@ -21,13 +21,7 @@ public class WifiDevInfo implements Serializable {
     public byte wifiChannel;        // WiFi working channel
     public byte[] wifiPassword = new byte[22];  // WiFi password
 
-    public static byte[] create_request() {
-        byte[] request = new byte[1456];
-        request[0] = 0x02;
-        request[1] = 0x06;
-        return request;
-    }
-    public void read(ByteBuffer buffer) {
+    public WifiDevInfo read(ByteBuffer buffer) {
         digitalDevType = buffer.get();
         infoDevSize = buffer.get();
         softType = buffer.get();
@@ -43,6 +37,7 @@ public class WifiDevInfo implements Serializable {
         wifiSerialNum = buffer.get();
         wifiChannel = buffer.get();
         buffer.get(wifiPassword);
+        return this;
     }
     // Getters with proper unsigned conversions
     public int getDigitalDevType() { return digitalDevType & 0xFF; }

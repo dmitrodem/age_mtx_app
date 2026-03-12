@@ -8,7 +8,6 @@ public class WifiHeader {
     private short transportLen;    // Transmitted data size (DMA-aligned, multiple of 8)
     private short realLen;         // Actual useful data size
     private short err;            // Error codes
-
     public void read(ByteBuffer buffer) {
         cmd = buffer.get();
         subCmd = buffer.get();
